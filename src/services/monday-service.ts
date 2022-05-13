@@ -1,7 +1,7 @@
 import initMondayClient from "monday-sdk-js";
 
 class MondayService {
-  static async getGroupIndex(token, boardId) {
+  static async getAssignmentsData(token, boardId) {
     try {
       const mondayClient = initMondayClient();
       mondayClient.setToken(token);
@@ -9,35 +9,105 @@ class MondayService {
       const query = `query($boardId: [Int]) {
         boards (ids: $boardId) {
           groups {
-            title
+            items {
+              id
+            }
           }
         }
       }`;
       const variables = { boardId };
 
       const response = await mondayClient.api(query, { variables });
-      return response.data.boards[0].groups;
+      const assignmentsData = [] as any[];
+      for (
+        let groupIndex = 0;
+        groupIndex < response.data.boards[0].groups.length;
+        groupIndex++
+      ) {
+        const items = response.data.boards[0].groups[groupIndex].items;
+        const values = await this.getColumnValues(
+          token,
+          items.map((i) => parseInt(i.id)),
+          ["status5", "text"]
+        );
+        for (let valueIndex = 0; valueIndex < values.length; valueIndex++) {
+          assignmentsData.push(values[valueIndex].values[0]);
+          assignmentsData.push(values[valueIndex].values[1]);
+        }
+      }
+      return assignmentsData;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+  static async getItemCountInGroup(token, boardId, groupId) {
+    try {
+      const mondayClient = initMondayClient();
+      mondayClient.setToken(token);
+
+      const query = `query($boardId: [Int]) {
+        boards (ids: $boardId) {
+          groups {
+            id
+            items {
+              id
+            }
+          }
+        }
+      }`;
+      const variables = { boardId };
+
+      const response = await mondayClient.api(query, { variables });
+      return response.data.boards[0].groups.find((g) => g.id === groupId).items
+        .length;
     } catch (err) {
       console.log(err);
     }
   }
 
-  static async getColumnValue(token, itemId, columnId) {
+  static async getGroupIndex(token, boardId, groupId) {
+    try {
+      const mondayClient = initMondayClient();
+      mondayClient.setToken(token);
+
+      const query = `query($boardId: [Int]) {
+        boards (ids: $boardId) {
+          groups {
+            id
+          }
+        }
+      }`;
+      const variables = { boardId };
+
+      const response = await mondayClient.api(query, { variables });
+      return response.data.boards[0].groups.map((g) => g.id).indexOf(groupId);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  static async getColumnValues(token, itemId, columnId) {
     try {
       const mondayClient = initMondayClient();
       mondayClient.setToken(token);
 
       const query = `query($itemId: [Int], $columnId: [String]) {
         items (ids: $itemId) {
+          id
           column_values(ids:$columnId) {
-            value
+            text
           }
         }
       }`;
       const variables = { columnId, itemId };
 
       const response = await mondayClient.api(query, { variables });
-      return response.data.items[0].column_values[0].value;
+      return response.data.items.map((i) => {
+        return {
+          id: i.id,
+          values: i.column_values.map((c) => c.text),
+        };
+      });
     } catch (err) {
       console.log(err);
     }

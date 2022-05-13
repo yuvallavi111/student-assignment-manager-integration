@@ -11,9 +11,24 @@ export async function executeColumnChange(req, res) {
 
     const groupIndex = await mondayService.getGroupIndex(
       shortLivedToken,
-      boardId
+      boardId,
+      groupId
     );
 
+    const itemCount = await mondayService.getItemCountInGroup(
+      shortLivedToken,
+      boardId,
+      groupId
+    );
+
+    let myAssignments = await mondayService.getAssignmentsData(
+      shortLivedToken,
+      boardId
+    );
+    myAssignments = myAssignments?.map((a) => {
+      return a === "Not Available" ? 0 : parseInt(a);
+    });
+    console.log(myAssignments);
     return res.status(200).send({});
   } catch (err) {
     console.error(err);
@@ -35,7 +50,7 @@ export async function executeAction(req, res) {
       transformationType,
     } = inboundFieldValues;
 
-    const text = await mondayService.getColumnValue(
+    const text = await mondayService.getColumnValues(
       shortLivedToken,
       itemId,
       sourceColumnId

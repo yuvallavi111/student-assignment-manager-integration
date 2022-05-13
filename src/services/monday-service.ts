@@ -1,5 +1,11 @@
 import initMondayClient from "monday-sdk-js";
-
+const courses = [
+  [4, 4, 5, 3],
+  [3, 4, 5, 2],
+  [6, 6, 5, 5],
+  [3, 3, 5, 3],
+  [4, 4, 5, 5],
+];
 class MondayService {
   static async getAssignmentsData(token, boardId) {
     try {
@@ -24,6 +30,14 @@ class MondayService {
         groupIndex < response.data.boards[0].groups.length;
         groupIndex++
       ) {
+        for (
+          let coursePropertyIndex = 0;
+          coursePropertyIndex < courses[groupIndex].length;
+          coursePropertyIndex++
+        ) {
+          assignmentsData.push(courses[groupIndex][coursePropertyIndex]);
+        }
+
         const items = response.data.boards[0].groups[groupIndex].items;
         const values = await this.getColumnValues(
           token,
@@ -117,7 +131,7 @@ class MondayService {
     try {
       const mondayClient = initMondayClient({ token });
 
-      const query = `mutation change_column_value($boardId: Int!, $itemId: Int!, $columnId: String!, $value: JSON!) {
+      const query = `mutation change_column_value($boardId: Int!, $itemId: Int!, $columnId: String!, $value: String!) {
         change_column_value(board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) {
           id
         }
@@ -126,6 +140,7 @@ class MondayService {
       const variables = { boardId, columnId, itemId, value };
 
       const response = await mondayClient.api(query, { variables });
+      console.log(response);
       return response;
     } catch (err) {
       console.log(err);
